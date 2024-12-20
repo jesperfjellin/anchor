@@ -74,19 +74,25 @@ def detect_project_type(directory):
         return requirements_file, entrypoint_script
     return None, None
 
-def is_plausible_path(p: str) -> bool:
-    # Strict patterns
-    windows_drive_path = re.compile(r'^[A-Za-z]:[\\/].+')
-    windows_unc_path = re.compile(r'^\\\\[^\\]+\\.+')
-    unix_abs_path = re.compile(r'^/[^/].+')
-
-    # Check if it matches one of these patterns
-    if windows_drive_path.match(p):
+def is_plausible_path(path_string):
+    """A more comprehensive check to determine if a string resembles a file path."""
+    
+    # Check for relative path start with . or ..
+    if path_string.startswith('.') or path_string.startswith('..'):
+        return True  # Treat relative paths as plausible
+    
+    # Check for drive letters on Windows
+    if len(path_string) >= 3 and path_string[1] == ':' and path_string[2] in ['\\', '/']:
         return True
-    if windows_unc_path.match(p):
+    
+    # Check for common path starting characters on Linux/macOS
+    if path_string.startswith('/'):
         return True
-    if unix_abs_path.match(p):
+    
+    # Check for basic path structure: contains directory separator
+    if '/' in path_string or '\\' in path_string:
         return True
+    
     return False
 
 def find_file_strings(directory, python_files):
@@ -98,16 +104,17 @@ def find_file_strings(directory, python_files):
             source = f.read()
             tree = ast.parse(source, filename=file_path)
 
+            # Re-iterate to apply logic
             for node in ast.walk(tree):
                 if isinstance(node, ast.Constant) and isinstance(node.value, str):
                     string_value = node.value.strip()
-
                     # Check if this string seems like a plausible file path
                     if is_plausible_path(string_value):
-                        print(f"Found potential external path at line {node.lineno}: {string_value}")
                         normalized_path = os.path.normpath(string_value)
-                        parent_dir = os.path.dirname(os.path.abspath(normalized_path))
-                        potential_files.add(parent_dir)
+                        
+                        # Get the absolute path of the string, without checking isdir
+                        mount_path = os.path.abspath(os.path.join(directory, normalized_path))
+                        potential_files.add(mount_path)
 
     if not potential_files:
         print("No potential external file paths found.")
@@ -115,8 +122,10 @@ def find_file_strings(directory, python_files):
 
     try:
         if len(potential_files) == 1:
-            return potential_files.pop()
+            single_path = potential_files.pop()
+            return single_path
         common_dir = os.path.commonpath(list(potential_files))
+        print(f"Common directory from all paths: {common_dir}")
         if common_dir and len(common_dir) > 1:
             print(f"Common directory found: {common_dir}")
             return common_dir
