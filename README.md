@@ -31,4 +31,15 @@ Anchor is a powerful command-line tool designed to streamline the process of set
 
 ```bash
 pip install anchor-terminal
+```
+
+## 🏳️ Flags
+
+Flag                | Description                                               | Required | Default                       |
+|---------------------|-----------------------------------------------------------|----------|-------------------------------|
+| `--image`           | **Docker Image Name.** Specifies the name for the image.  | Yes      | N/A                           |
+| `--container`       | **Docker Container Name.** Sets a custom container name.  | No       | Automatically assigned        |
+| `--ports`           | **Port Mappings.** Maps host ports to container ports.          | No       | No ports mapped               |
+| `--python`          | **Python Version.** Chooses the Python version (e.g., 3.13). | No    | `3.13`                        |
+| `--debug`           | **Enable Debug Logging.** Activates detailed logs.        | No       | `False`                       |
 
