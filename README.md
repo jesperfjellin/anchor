@@ -14,6 +14,6 @@ The `create` command supports the following flags to customize Docker image and 
 |---------------------|-----------------------------------------------------------|----------|-------------------------------|
 | `--image`           | **Docker Image Name.** Specifies the name for the image.  | Yes      | N/A                           |
 | `--container`       | **Docker Container Name.** Sets a custom container name.  | No       | Automatically assigned        |
-| `-p`, `--ports`     | **Port Mappings.** Maps host ports to container ports.    | No       | `[]` (No ports mapped)        |
+| `--ports`     | **Port Mappings.** Maps host ports to container ports.          | No       | No ports mapped               |
 | `--python`          | **Python Version.** Chooses the Python version (e.g., 3.13). | No    | `3.13`                        |
 | `--debug`           | **Enable Debug Logging.** Activates detailed logs.        | No       | `False`                       |
