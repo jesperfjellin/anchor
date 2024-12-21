@@ -30,5 +30,5 @@ Anchor is a powerful command-line tool designed to streamline the process of set
 ## 🛠️ Installation
 
 ```bash
-pip install anchor-cli
+pip install anchor-terminal
 
