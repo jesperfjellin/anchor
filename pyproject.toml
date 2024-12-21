@@ -21,4 +21,4 @@ anchor = "anchor.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["anchor"]
+packages = ["anchor-cli"]
