@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "anchor"
+name = "anchor-cli"
 version = "0.1.1"
 description = "A Docker workflow tool"
 readme = "README.md"
