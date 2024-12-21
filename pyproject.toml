@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "anchor-cli"
+name = "anchor-terminal"
 version = "0.1.1"
 description = "A Docker workflow tool"
 readme = "README.md"
@@ -17,8 +17,8 @@ authors = [
 ]
 
 [project.scripts]
-anchor = "anchor.cli:main"
+anchor = "anchor.terminal:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["anchor-cli"]
+packages = ["anchor-terminal"]
