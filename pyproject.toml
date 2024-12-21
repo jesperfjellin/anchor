@@ -17,8 +17,8 @@ authors = [
 ]
 
 [project.scripts]
-anchor = "anchor.terminal:main"
+anchor = "anchor_terminal.terminal:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["anchor-terminal"]
+packages = ["anchor_terminal"]
