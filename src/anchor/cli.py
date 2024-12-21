@@ -2,7 +2,10 @@ import argparse
 import subprocess
 import os
 import ast
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 def check_docker_installation():
     try:
@@ -74,64 +77,94 @@ def detect_project_type(directory):
         return requirements_file, entrypoint_script
     return None, None
 
-def is_plausible_path(path_string):
-    """A more comprehensive check to determine if a string resembles a file path."""
+def is_plausible_path(path_string: str) -> bool:
+    '''
+    Accept only:
+    1) Windows absolute: C:/ or D:/...
+    2) UNIX absolute: /something (but not //something)
+    3) Relative: . or .. or ./xxx or ../xxx
+    Everything else is rejected.
+    '''
+
+    path_string = path_string.strip()
+    logger.debug("Checking path: '%s'", path_string)
+
+    # Skip empty
+    if not path_string:
+        logger.debug("Skipping empty path")
+        return False
     
-    # Check for relative path start with . or ..
-    if path_string.startswith('.') or path_string.startswith('..'):
-        return True  # Treat relative paths as plausible
-    
-    # Check for drive letters on Windows
-    if len(path_string) >= 3 and path_string[1] == ':' and path_string[2] in ['\\', '/']:
+    if re.match(r'^\.\.?', path_string):  # starts with . or ..
+        return False
+
+    # Skip typical URL
+    if re.match(r"^[a-zA-Z]+://", path_string):
+        logger.debug("Skipping URL-like path: '%s'", path_string)
+        return False
+
+    # 1) Windows absolute, e.g. "C:\folder" or "D:/folder"
+    if re.match(r"^[A-Za-z]:[\\/].+", path_string):
+        logger.debug("Accepted as Windows absolute path: '%s'", path_string)
         return True
-    
-    # Check for common path starting characters on Linux/macOS
-    if path_string.startswith('/'):
+
+    # 2) UNIX absolute, but NOT double slash
+    #    i.e., it must start with exactly 1 slash, then something else
+    if re.match(r"^/[^/].*", path_string):
+        logger.debug("Accepted as UNIX absolute path: '%s'", path_string)
         return True
-    
-    # Check for basic path structure: contains directory separator
-    if '/' in path_string or '\\' in path_string:
+
+    # 3) Relative: '.' or '..' or './...' or '../...'
+    #    This pattern covers:
+    #    - Exactly "." or ".."
+    #    - "./anything"
+    #    - "../anything"
+    #    - Possibly deeper nesting e.g. "../../something"
+    if re.match(r"^\.\.?([\\/].+)?$", path_string):
+        logger.debug("Accepted as relative path: '%s'", path_string)
         return True
-    
+
+    # If we get here, we reject it
+    logger.debug("Skipping path (doesn't match recognized patterns): '%s'", path_string)
     return False
 
 def find_file_strings(directory, python_files):
     potential_files = set()
+    logger.debug("Scanning %d Python files in directory: %s", len(python_files), directory)
 
     for file in python_files:
         file_path = os.path.join(directory, file)
+        logger.debug("Opening file: %s", file_path)
         with open(file_path, 'r', encoding='utf-8') as f:
             source = f.read()
             tree = ast.parse(source, filename=file_path)
 
-            # Re-iterate to apply logic
             for node in ast.walk(tree):
                 if isinstance(node, ast.Constant) and isinstance(node.value, str):
                     string_value = node.value.strip()
-                    # Check if this string seems like a plausible file path
                     if is_plausible_path(string_value):
                         normalized_path = os.path.normpath(string_value)
-                        
-                        # Get the absolute path of the string, without checking isdir
                         mount_path = os.path.abspath(os.path.join(directory, normalized_path))
+                        logger.debug("Found plausible path: '%s' (normalized to '%s')", string_value, mount_path)
                         potential_files.add(mount_path)
 
     if not potential_files:
         print("No potential external file paths found.")
         return None
 
+    logger.debug("All discovered paths: %s", potential_files)
     try:
         if len(potential_files) == 1:
             single_path = potential_files.pop()
+            logger.debug("Only one path found: %s", single_path)
             return single_path
         common_dir = os.path.commonpath(list(potential_files))
-        print(f"Common directory from all paths: {common_dir}")
+        logger.debug(f"Common directory from all paths: {common_dir}")
         if common_dir and len(common_dir) > 1:
-            print(f"Common directory found: {common_dir}")
+            logger.debug(f"Common directory found: {common_dir}")
             return common_dir
         return None
     except ValueError:
-        # This happens if paths are on different drives or invalid
+        # This happens if paths are on different drives
         print("Paths are on different drives or invalid. Cannot find a common directory.")
         return None
 
@@ -190,10 +223,16 @@ def main():
     create_parser = subparsers.add_parser('create', help='Create Docker image and container')
     create_parser.add_argument("--image", help="Docker image name", required=True)
     create_parser.add_argument("--container", help="Docker container name")
-    create_parser.add_argument("-p", "--ports", help="Port mappings (e.g., 8080:80, 5432:5432). Can be multiple ports separated by spaces.", nargs='+', default=[])
+    create_parser.add_argument("-p", "--ports", help="Port mappings (e.g., 8080:80).", nargs='+', default=[])
     create_parser.add_argument("--python", help="Python version to use (e.g., 3.12, 3.13)", default="3.13")
+    create_parser.add_argument("--debug", action='store_true', help="Enable debug logging")
 
     args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     if not check_docker_installation():
         return

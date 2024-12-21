@@ -1,10 +1,23 @@
 [build-system]
-requires = ["setuptools>=61.0.0", "wheel"]
+requires = [
+    "setuptools>=61.0",
+    "wheel"
+]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "anchor"
-version = "0.1.0"
-dependencies = []
+version = "0.1.1"
+description = "A Docker workflow tool"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+
 [project.scripts]
-  anchor = "anchor:main"
+anchor = "anchor.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["anchor"]
